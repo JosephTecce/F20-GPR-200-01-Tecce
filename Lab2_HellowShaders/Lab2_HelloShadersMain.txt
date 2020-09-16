@@ -5,6 +5,29 @@
 //Anytime used colorRGBA it will be a vec4
 #define colorRGBA vec4
 
+// Effect was inspired by online youtube 
+// video : https://www.youtube.com/watch?v=VxGfhPeeXqs&list=PL4neAtv21WOmIrTrkNO3xCyrxg4LKkrF7&index=16
+vec4 myEffect4Bonus(in vec2 fragCoord)
+{
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv = fragCoord / iResolution.xy;
+    
+    // Made a variation were only taking sin.x over time
+    // Made a variation were only taking cos.y over time
+    // Made another variation were sin.y is a tan, and cos.x is a tan
+    vec2 sinWave = vec2(0.5 / sin(uv.x + iTime), tan(uv.x + iTime)); //Deviding by sin to make cool line effect
+    vec2 cosWave = vec2(tan(uv.y + iTime), 1.0 / cos(uv.y + iTime)); //Deviding by cos to make cool line effect
+    
+    // Combining the cos.y and sin.x wave made above
+    // tan added to make harsher edgese to effect making it more clear
+    vec3 col = vec3(cos(cosWave.x), (sinWave.x), tan((cosWave.x + cosWave.y) - (sinWave.x + sinWave.y)));
+
+    // return to main function
+    return vec4(col,1.0);
+}
+
+// Effect was inspired by online youtube 
+// video : https://www.youtube.com/watch?v=VxGfhPeeXqs&list=PL4neAtv21WOmIrTrkNO3xCyrxg4LKkrF7&index=16
 vec4 myEffect3Trip(in vec2 fragCoord)
 {
     // Normalized pixel coordinates (from 0 to 1)
@@ -55,7 +78,7 @@ vec4 myEffect1Checkers(in vec2 fragCoord)
     // Not fully original work! 
     // Source for grid came from: https://www.shadertoy.com/view/XtBBRw
     // This is the best way I could find on sourcing this work
-    vec2 uv = fragCoord / vec2(100);
+    vec2 uv = fragCoord / vec2(100); //One way found to make perfect squares
     float color = mod(floor(uv.x) + floor(uv.y), 2.0); //this is mod(genFType x, float y);
     return vec4(vec3(color), 1.0);
 }
@@ -74,16 +97,16 @@ vec4 myEffect0(in vec2 fragCoord, in vec2 resolution)
     //return vec4(fragCoord, 0.0, 1.0);
     
     //final: red-green gradient
-    //vec2 uv = fragCoord / iResolution.xy;
-    //return vec4(uv, 0.0, 1.0);
+    vec2 uv = fragCoord / iResolution.xy;
+    return vec4(uv, 0.0, 1.0);
     
     //fun: red-green gradient
-    vec2 uv = fragCoord / resolution;
+    //vec2 uv = fragCoord / resolution;
     //return vec4(0.5, uv, 1.0);
     
-    vec3 color = vec3(uv, 0.25);
-    float alpha = 1.0;
-    return vec4(color, alpha);
+    //vec3 color = vec3(uv, 0.25);
+    //float alpha = 1.0;
+    //return vec4(color, alpha);
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
@@ -91,7 +114,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     //Actual calling of functions for project
     
     // Effect 0
-    //fragColor = myEffect0(fragCoord, iResolution.xy);
+    fragColor = myEffect0(fragCoord, iResolution.xy);
     
     // Effect 1
     //fragColor = myEffect1Checkers(fragCoord);
@@ -100,7 +123,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     //fragColor = myEffect2Cricle(fragCoord, 0.3);
     
     // Effect 3
-    fragColor = myEffect3Trip(fragCoord);
+    //fragColor = myEffect3Trip(fragCoord);
+    
+    // Effect 4
+    //fragColor = myEffect4Bonus(fragCoord);
     
     
     // Other notes taken in class
