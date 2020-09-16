@@ -5,26 +5,43 @@
 //Anytime used colorRGBA it will be a vec4
 #define colorRGBA vec4
 
-
-float circle(in vec2 st, in float radius){
-    vec2 dist = st - vec2(0.5);
-    return 1.-smoothstep(radius - (radius * 0.01),
-                         radius + (radius * 0.01),
-                         dot(dist, dist) * 4.0);
-
+// Method found in an youtube channel Lewis Lepton
+// Link to youtube video to make cirlce: https://www.youtube.com/watch?v=9oYssHkOn0I
+// Link to youtube video to make it pulse: https://www.youtube.com/watch?v=gxOfjRT5CMA&t=41s
+vec4 myEffect2Cricle(in vec2 fragCoord, in float radius)
+{
+    vec2 uv = fragCoord.xy; //Gets pixel cordinates
+    
+    vec3 color = vec3 (0.0); //setting up color
+    
+    //Incharge of the sin change over time
+    vec2 scale = vec2(sin(iTime) + 2.0);
+    
+    //Actualy scaling the circle
+    uv -= vec2(0.5);
+    uv = mat2(scale.x, 0.0, 0.0, scale.y) * uv;
+    uv += vec2(0.5);
+    
+    //Step is a step funiction that will return 0.0 or 1.0 (depending on what was put in)
+    //Length returns the length of a vector
+    //Mulitpling resolutions here because I found it to fix my screen problem
+    float circle = step(radius * iResolution.y, length(uv - vec2(iResolution.xy * 0.5))); 
+    
+    color += vec3(circle, 0.2, 1.0); //Draws circle and colors it blue and pink
+    
+    return vec4(color, 1.0); //Returns circle
+    
 }
 
-vec4 myEffect1(in vec2 fragCoord)
+vec4 myEffect1Checkers(in vec2 fragCoord)
 {
-    //IMPORTANT THIS IS A TEMPLATE FOR MAKING CHECKER
-    //LEARN WHAT IS HAPPENING AND MAKE IT YOUR OWN!!
-    //GOTTON EXAMPLE: 
+    // Not fully original work! 
+    // Source for grid came from: https://www.shadertoy.com/view/XtBBRw
+    // This is the best way I could find on sourcing this work
     
-    //This Works!
-    vec2 uv = fragCoord / vec2(500.0 - vec2(1));
-    uv *= 7.0;	
-    float col = mod(floor(uv.x) + floor(uv.y), 2.);
-    return vec4(vec3(col), 1.0);
+    vec2 uv = fragCoord / vec2(100);
+    float cord = mod(floor(uv.x) + floor(uv.y), 2.0); //this is mod(genFType x, float y);
+    return vec4(vec3(cord), 1.0);
 }
  
 
@@ -55,27 +72,31 @@ vec4 myEffect0(in vec2 fragCoord, in vec2 resolution)
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    vec2 resolution = vec2(500. - vec2(1));
+    //Actual calling of functions for project
     
-    //Effect 0
+    // Effect 0
     //fragColor = myEffect0(fragCoord, iResolution.xy);
     
-    //Effect 1
-    //fragColor = myEffect1(fragCoord);
+    // Effect 1
+    //fragColor = myEffect1Checkers(fragCoord);
+    
+    // Effect 2
+    fragColor = myEffect2Cricle(fragCoord, 0.3);
+    
+    
+    
+    // Other notes taken in class
+    // Also graident color change was written when file was made
     
     //R,G,B,A = [0,1]
     //fragColor = vec4(1.0, 1.0, 1.0, 1.0);
     
-    //vec2 st = fragCoord.xy / vec2(100. - vec2(1));
-    //vec3 color = vec3(circle(st, .5));
-    //fragColor = vec4(color, 1.0);
-    
     // Normalized pixel coordinates (from 0 to 1)
-    vec2 uv = fragCoord/iResolution.xy;
+    //vec2 uv = fragCoord/iResolution.xy;
 
     // Time varying pixel color
-    vec3 col = 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
+    //vec3 col = 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
 
     // Output to screen
-    fragColor = vec4(col,1.0);
+    //fragColor = vec4(col,1.0);
 }
