@@ -5,6 +5,25 @@
 //Anytime used colorRGBA it will be a vec4
 #define colorRGBA vec4
 
+vec4 myEffect3Trip(in vec2 fragCoord)
+{
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv = fragCoord / iResolution.xy;
+    
+    // Makeing "sin" wave and "cos" wave
+    // Made a variation were only taking sin.x over time
+    // Made a variation were only taking cos.y over time
+    vec2 sinWave = vec2(sin(uv.x + iTime), sin(uv.x + iTime));
+    vec2 cosWave = vec2(cos(uv.y + iTime), cos(uv.y + iTime));
+    
+    // Combining the cos.y and sin.x wave made above
+    // tan added to make harsher edgese to effect making it more clear
+    vec3 col = vec3(cos(cosWave.x), cos(sinWave.x), tan((cosWave.x + cosWave.y) - (sinWave.x + sinWave.y)));
+
+    // return to main function
+    return vec4(col,1.0);
+}
+
 // Method found in an youtube channel Lewis Lepton
 // Link to youtube video to make cirlce: https://www.youtube.com/watch?v=9oYssHkOn0I
 // Link to youtube video to make it pulse: https://www.youtube.com/watch?v=gxOfjRT5CMA&t=41s
@@ -14,10 +33,8 @@ vec4 myEffect2Cricle(in vec2 fragCoord, in float radius)
     
     vec3 color = vec3 (0.0); //setting up color
     
-    //Incharge of the sin change over time
-    vec2 scale = vec2(sin(iTime) + 2.0);
+    vec2 scale = vec2(sin(iTime) + 2.0); //Change scale of circle over time
     
-    //Actualy scaling the circle
     uv -= vec2(0.5);
     uv = mat2(scale.x, 0.0, 0.0, scale.y) * uv;
     uv += vec2(0.5);
@@ -38,10 +55,9 @@ vec4 myEffect1Checkers(in vec2 fragCoord)
     // Not fully original work! 
     // Source for grid came from: https://www.shadertoy.com/view/XtBBRw
     // This is the best way I could find on sourcing this work
-    
     vec2 uv = fragCoord / vec2(100);
-    float cord = mod(floor(uv.x) + floor(uv.y), 2.0); //this is mod(genFType x, float y);
-    return vec4(vec3(cord), 1.0);
+    float color = mod(floor(uv.x) + floor(uv.y), 2.0); //this is mod(genFType x, float y);
+    return vec4(vec3(color), 1.0);
 }
  
 
@@ -81,8 +97,10 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     //fragColor = myEffect1Checkers(fragCoord);
     
     // Effect 2
-    fragColor = myEffect2Cricle(fragCoord, 0.3);
+    //fragColor = myEffect2Cricle(fragCoord, 0.3);
     
+    // Effect 3
+    fragColor = myEffect3Trip(fragCoord);
     
     
     // Other notes taken in class
