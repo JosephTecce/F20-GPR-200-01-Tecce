@@ -1,3 +1,6 @@
+// Code written and commented by: Joseph Tecce
+// Using Shadertoys copyright agreement
+
 //using color = vec3;
 //Any time useing 'colorRGB' it will be a vec3
 #define colorRGB vec3
