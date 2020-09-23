@@ -1,0 +1,375 @@
+// Code Bellow was written and commented by: Joseph Tecce
+// Functions templates calcViewport, calcRay, calcColor, mainImage were provided by: Proffessor Buckstein
+// While attending class GPR-200-01 Introduction to Modern Graphics Programming
+// At Champlain College
+
+
+// ********* IMPORTANT **********
+// vec3 in book = vec4 in shadertoy
+// Don't do everything at once, just keep testing along the way
+// Try to multiply instead of devide when possible
+
+
+struct hitRecord
+{
+    vec4 p;
+    vec4 normal;
+    float t;
+   
+};
+
+// ***Calculations Functions***
+float lengthSqrt(in vec4 e)
+{
+    return e.x * e.x + e.y * e.y + e.z * e.z;
+}
+
+vec4 unitVector(in vec4 v)
+{
+    return v / length(v);
+}
+
+
+// ***Functions***
+
+vec4 setFaceNormal(in vec4 rayDirection, in vec4 rayOrigin, in vec4 outwardNormal, in vec4 normal)
+{
+    bool frontFace = dot(rayDirection, outwardNormal) < 0.0;
+    return normal = frontFace ? outwardNormal : -outwardNormal;
+}
+
+bool hit(in vec4 rayDirection, in vec4 rayOrigin, in float t_min, in float t_max, in hitRecord rec)
+{
+    return true;
+}
+
+/*
+bool hittableList(const vec4  rayDirection, const vec4 rayOrigin, float tMin, float tMax, hitRecord rec)
+{
+    hitRecord tempRec;
+    bool hitAnything = false;
+    float closestSoFar = tMax;
+   	
+    if(hit(rayDirection, rayOrigin, 0.0, 0.5, tempRec))
+    {
+        hitAnything = true;
+        closestSoFar = tempRec.
+    }
+}
+*/
+
+bool sphereHit (const vec4 center, float radius, const vec4 rayDirection, const vec4 rayOrigin, float tMin, float tMax, hitRecord rec)
+{
+    // Comeback to optimize the lengthSqrt method
+    // Simplified method of sphere calculations
+    vec4 oc = rayOrigin - center;
+    float a = lengthSqrt(rayDirection); //dot(rayDirection, rayDirection);
+    float half_b = dot(oc, rayDirection); //2.0 * dot(oc, rayDirection);
+    float c = lengthSqrt(oc) - radius * radius; //dot(oc, oc) - radius * radius;
+    float discriminant = half_b * half_b - a * c;
+    
+    if(discriminant > 0.0)
+    {
+        float root = discriminant * discriminant;
+        
+        float temp = (-half_b - root) / a;
+        if(temp < tMax && temp > tMin)
+        {
+            rec.t = temp;
+            rec.p = rayDirection;
+            vec4 outwardNormal = (rec.p - center) / radius;
+            rec.normal = setFaceNormal(rayDirection, rayOrigin, outwardNormal, rec.normal);
+            return true;
+        }
+        
+        temp = (-half_b + root) / a;
+        if(temp <= tMax && temp >= tMin)
+        {
+            rec.t = temp;
+            rec.p = rayDirection;
+            vec4 outwardNormal = (rec.p - center) / radius;
+            rec.normal = setFaceNormal(rayDirection, rayOrigin, outwardNormal, rec.normal);
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+/*
+float sphere (const vec4 center, float radius, const vec4 rayDirection, const vec4 rayOrigin)
+{
+    // Comeback to optimize the lengthSqrt method
+    // Simplified method of sphere calculations
+    vec4 oc = rayOrigin - center;
+    float a = lengthSqrt(rayDirection); //dot(rayDirection, rayDirection);
+    float half_b = dot(oc, rayDirection); //2.0 * dot(oc, rayDirection);
+    float c = lengthSqrt(oc) - radius * radius; //dot(oc, oc) - radius * radius;
+    float discriminant = half_b * half_b - a * c;
+    
+    
+
+    if(discriminant > 0.0)
+    {
+        return (-half_b - (discriminant * discriminant)) / a;
+    }
+    
+    if(discriminant < 0.0)
+    {
+        return -1.0;
+    }
+}
+*/
+
+// calcViewport: calculate the viewing plane (viewport) coordinate
+//    viewport:       output viewing plane coordinate
+//    ndc:            output normalized device coordinate
+//    uv:             output screen-space coordinate
+//    aspect:         output aspect ratio of screen
+//    resolutionInv:  output reciprocal of resolution
+//    viewportHeight: input height of viewing plane
+//    fragCoord:      input coordinate of current fragment (in pixels)
+//    resolution:     input resolution of screen (in pixels)
+void calcViewport(out vec2 viewport, out vec2 ndc, out vec2 uv,
+                  out float aspect, out vec2 resolutionInv,
+                  in float viewportHeight, in vec2 fragCoord, in vec2 resolution)
+{
+    // inverse (reciprocal) resolution = 1 / resolution
+    resolutionInv = 1.0 / resolution;
+    
+    // aspect ratio = screen width / screen height
+    aspect = resolution.x * resolutionInv.y;
+
+    // uv = screen-space coordinate = [0, 1) = coord / resolution
+    uv = fragCoord * resolutionInv;
+
+    // ndc = normalized device coordinate = [-1, +1) = uv*2 - 1
+    ndc = uv * 2.0 - 1.0;
+
+    // viewport: x = [-aspect*h/2, +aspect*h/2), y = [-h/2, +h/2)
+    viewport = ndc * (vec2(aspect, 1.0) * (viewportHeight * 0.5));
+}
+
+// calcRay: calculate the ray direction and origin for the current pixel
+//    rayDirection: output direction of ray from origin
+//    rayOrigin:    output origin point of ray
+//    viewport:     input viewing plane coordinate (use above function to calculate)
+//    focalLength:  input distance to viewing plane
+void calcRay(out vec4 rayDirection, out vec4 rayOrigin,
+             in vec2 viewport, in float focalLength)
+{
+    // ray origin relative to viewer is the origin
+    // w = 1 because it represents a point; can ignore when using
+    rayOrigin = vec4(0.0, 0.0, 0.0, 1.0);
+
+    // ray direction relative to origin is based on viewing plane coordinate
+    // w = 0 because it represents a direction; can ignore when using
+    rayDirection = vec4(viewport.x, viewport.y, -focalLength, 0.0);
+}
+
+
+// calcColor: calculate the color of a pixel given a ray
+//    rayDirection: input ray direction
+//    rayOrigin:    input ray origin
+vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
+{
+    hitRecord rec;
+    //float t = sphere(vec4(0.0, 0.0, -1.0, 1.0), 0.5, rayDirection, rayOrigin);
+    
+    //if(t > 0.0)
+    //{
+        //vec4 N = unitVector(rayDirection - vec4(0.0, 0.0, -1.0, 1.0));
+        //return vec4(N.x + 1.0, N.y + 1.0, N.z + 1.0, 1.0) / 2.0;
+    //}
+    
+    if(sphereHit(vec4(0.0, 0.0, -1.0, 1.0), 0.5, rayDirection, rayOrigin, 0.0, 10000000000.0, rec))
+    {
+        vec4 N = unitVector(rayDirection - vec4(0.0, 0.0, -1.0, 1.0));
+        return vec4(N.x + 1.0, N.y + 1.0, N.z + 1.0, 1.0) / 2.0;
+    }
+    
+    if(sphereHit(vec4(0.0, -100.5, -1.0, 1.0), 100.0, rayDirection, rayOrigin, 0.0, 10000000000.0, rec))
+    {
+        return (rec.normal + vec4(0.0, 1.0, 0.0, 1.0));
+    }
+    
+    vec4 unitDirection = unitVector(rayDirection);
+    float t = (unitDirection.y + 1.0) / 2.0;
+    
+    return (1.0 - t) * vec4(1.0, 1.0, 1.0, 1.0) + t * vec4(0.5, 0.7, 1.0, 1.0);
+}
+
+
+// mainImage: process the current pixel (exactly one call per pixel)
+//    fragColor: output final color for current pixel
+//    fragCoord: input location of current pixel in image (in pixels)
+void mainImage(out vec4 fragColor, in vec2 fragCoord)
+{
+    // viewing plane (viewport) info
+    vec2 viewport, ndc, uv, resolutionInv;
+    float aspect;
+    const float viewportHeight = 2.0, focalLength = 1.0;
+
+    // ray
+    vec4 rayDirection, rayOrigin;
+
+    // setup
+    calcViewport(viewport, ndc, uv, aspect, resolutionInv,
+                 viewportHeight, fragCoord, iResolution.xy);
+    
+    calcRay(rayDirection, rayOrigin,
+            viewport, focalLength);
+    
+    // World
+    bool sphere1 = sphereHit(vec4(0.0, 0.0, -1.0, 1.0), 0.5, rayDirection, rayOrigin, 0.0, 10000000000.0, rec);
+    bool sphere2 = sphereHit(vec4(0.0, 0.0, -1.0, 1.0), 0.5, rayDirection, rayOrigin, 0.0, 10000000000.0, rec);
+    
+    
+    // color
+    fragColor = calcColor(rayDirection, rayOrigin);
+
+    // TEST COLOR:
+    //  -> what do the other things calculated above look like?
+    //fragColor = vec4(viewport, 0.0, 0.0);
+    //fragColor = vec4(ndc, 0.0, 0.0);
+    //fragColor = vec4(uv, 0.0, 0.0);
+    
+    
+    
+    // EFFICIENCY TIPS
+    //float a = fragCoord.x + 2.0; // single parallel operation
+    
+    // A conditional 
+    // Even if if statmenet is false will still read if statment and role back
+    // Try to use if statment as little as possible they are evil
+    // Tip to optimize them put most likly first so little role back
+    //if (a < 0.0)
+    //{  
+    //}
+    //else
+    //{ 
+    //}
+   
+    // Don't need for project but good practice to think and possible implement
+    // Antialiasing tips (going from least efficent to most efficent)
+    //int numSample = 10;
+    //int i;
+    // **(Unknown number of iterations)**
+    //for (i = 0; i < numSamples; i++)
+    //for(i = 0; i < numSamples; ++i) // ++i is greater then i++
+    //for(i = numSamples - 1; i >= 0; --i) // >= is faster then <
+    //{ 
+    //	 resutl += vec4(float(i));
+    //}
+    
+    // Prenent out of main dummy funciton
+    //vec4 addColor(in int index)
+    //{
+        // do something important blah blah
+        //return vec4(float(index))
+    //}
+    
+    // ******** IMPORTANT *********
+    // helps with only having to type things one time
+    //float lengthSq(in vec2 x)
+    //{
+        //return dot(x, x);
+    //}
+    
+    //float lengthSq(in vec3 x)
+    //{
+        //return dot(x, x);
+    //}
+    
+    //float lengthSq(in vec4 x)
+    //{
+        //return dot(x, x);
+    //}
+    
+    // Back in main **(Know number of iterations)**
+    // This one job is just what for loop does behind the sences just more effictant 
+    // Same thing as for loop but cuts it out becasue we know how many times it will be called
+    //result += addColor(++i);
+    //result += addColor(++i);
+    //result += addColor(++i);
+    //result += addColor(++i);
+    //result += addColor(++i);
+    //result += addColor(++i);
+    //result += addColor(++i);
+    //result += addColor(++i);
+    //result += addColor(++i);
+    //result += addColor(++i);
+    //result += addColor(++i);
+    
+    // ****EXAMPLES****
+    //float aSq = a * a; // pow(a, 2.0); Same thing
+    //float aCu = a * aSq; // Way more effecive
+    //float a4 = aSq * aSq // More effective 
+    
+    // The Actual more effective way
+    //a *= a; // 'a' Squared
+    //a *= a; // original ^ 4
+    //a *= a; // original ^ 8
+    //Will keep increaseing by incraments of 2
+    
+    //float lengthSq(rayDirection);
+    
+    //vec2 s = rayDirection.xy;
+    //vec2 s = vec2(rayDirection.x, rayDirection.y);
+    //vec2 s = vec2(rayDirection.y, rayDirection.x); //Not swizzling
+    //vec2 s = rayDirection.yx; //swizzling
+    
+    //more swizzling
+    //vec3 s3 = rayDirection.yxz; //All different can be assignable and changed
+    //vec3 s3 = rayDirection.zzx; //Duplicates not writable
+    //vec3 s3 = rayDirection.yyy;
+    //vec3 s3 = rayDirection.xxx;
+    //vec3 s3 = rayDirection.xyy;
+    //rayDirection.yxz = rayDirection.zxy; //can be changed around like so
+    
+    //vec4 s4 = lengthSq.xxxx; // can swizzle with floats only like this tho
+    
+}
+
+
+// Notes taken in Class
+/*
+// Imagine 1 call per pixel just parallel
+void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // Normalized pixel coordinates (from 0 to 1)
+    //vec2 uv = fragCoord/iResolution.xy;
+
+    // Time varying pixel color
+    //vec3 col = 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
+
+    // Output to screen
+    //fragColor = vec4(col,1.0);
+    
+    // A way to check the version of GLSL being used
+    //if(__VERSION__ == 300)
+        //fragColor = vec4(1.0);
+}
+*/
+
+/*
+#version 300 es
+
+// ***All of this is just what shader toy is doing in the background to make everything work***
+
+// inputs (later)
+// uniforms (see above)
+
+// output (basically saying first of a set)
+layout (location = 0) out vec4 fragColor;
+
+// shadertoy
+void mainImage(out vec4 fragColor, in vec2 fragCoord);
+
+// Actual Fragment Shader main
+void main()
+{
+	// shadertoy
+	mainImage(fragColor, fragCoord.xy);
+}
+*/
