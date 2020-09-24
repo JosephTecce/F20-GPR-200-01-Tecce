@@ -3,6 +3,8 @@
 // While attending class GPR-200-01 Introduction to Modern Graphics Programming
 // At Champlain College
 // Copyright provided by: ShaderToy
+// Other Sources used: https://www.shadertoy.com/view/tlB3D3
+// Locations specified in code
 
 
 // *********IMPORTANT**********
@@ -11,7 +13,7 @@
 // Try to multiply instead of devide when possible
 
 // *******STRUCTS*******
-
+// Starting point for when a ray hits
 struct hitRecord
 {
     vec4 p;
@@ -19,6 +21,7 @@ struct hitRecord
     float t;
 };
 
+// Starting point for spheres
 struct sphereStruct
 {
     vec4 center;
@@ -26,20 +29,32 @@ struct sphereStruct
 };
     
 // *******CALCULATIONS FUNCTIONS*******
+// Gets square root of vec4's (quicker then normal)
 float lengthSqrt(in vec4 e)
 {
     return dot(e, e);
 }
 
+// calculates length of a vector
 vec4 unitVector(in vec4 v)
 {
     return v / length(v);
 }
 
-// *******Functions*******
+// Not All Origininal Work for calcViewPort!
+// Got some insperation from ShaderToy user fhecht
+// Source: https://www.shadertoy.com/view/tlB3D3
+// "Random" Number Generator
+float numRand(vec2 uv)
+{
+    // Commonly used random number generator on ShaderToy
+    return fract(sin(dot(uv.xy, vec2(12.9898, 78.233))) * 437578.5453);
+}
 
+// *******Functions*******
 vec4 setFaceNormal(in vec4 rayDirection, in vec4 rayOrigin, in vec4 outwardNormal)
 {
+    // Normalizing the face the ray is hitting
     bool frontFace = dot(rayDirection, outwardNormal) < 0.0;
     return frontFace ? outwardNormal : -outwardNormal;
 }
@@ -47,16 +62,19 @@ vec4 setFaceNormal(in vec4 rayDirection, in vec4 rayOrigin, in vec4 outwardNorma
 bool sphereHit (vec4 rDir, vec4 rOrg, float tMin, float tMax, sphereStruct curSphere, inout hitRecord rec)
 {
     // Simplified method of sphere calculations
+    // Calculating if it is a sphere
     vec4 oc = rOrg - curSphere.center;
     float a = lengthSqrt(rDir);
     float half_b = dot(oc, rDir);
     float c = lengthSqrt(oc) - curSphere.radius * curSphere.radius;
     float discriminant = half_b * half_b - a * c;
     
+    // Checking if the ray shot is inside a sphere
     if(discriminant > 0.0)
     {
         float root = sqrt(discriminant);
         
+        //Checking rays and normalzing them
         float temp = (-half_b - root) / a;
         if(temp <= tMax && temp >= tMin)
         {
@@ -81,42 +99,10 @@ bool sphereHit (vec4 rDir, vec4 rOrg, float tMin, float tMax, sphereStruct curSp
     return false;
 }
 
-bool hittableSphere(vec4 rDir, vec4 rOrg, float tMin, float tMax, sphereStruct curSphere, out hitRecord rec)
-{
-    bool hitAnything = false;
-    //float closestSoFar = tMax;
-    
-    if(sphereHit(rDir, rOrg, tMin, tMax, curSphere, rec))
-    {
-        hitAnything = true;
-        tMax = rec.t;
-    }
-    
-    return hitAnything;
-}
-
-/*
-float sphereOG (const vec4 center, float radius, const vec4 rayDirection, const vec4 rayOrigin)
-{
-    // Comeback to optimize the lengthSqrt method
-    // Simplified method of sphere calculations
-    vec4 oc = rayOrigin - center;
-    float a = lengthSqrt(rayDirection); //dot(rayDirection, rayDirection);
-    float half_b = dot(oc, rayDirection); //2.0 * dot(oc, rayDirection);
-    float c = lengthSqrt(oc) - radius * radius; //dot(oc, oc) - radius * radius;
-    float discriminant = half_b * half_b - a * c;    
-
-    if(discriminant > 0.0)
-    {
-        return (-half_b - (discriminant * discriminant)) / a;
-    }
-    
-    if(discriminant < 0.0)
-    {
-        return -1.0;
-    }
-}
-*/
+// Not All Origininal Work for calcViewPort!
+// Got some insperation from ShaderToy user fhecht
+// Source: https://www.shadertoy.com/view/tlB3D3
+// Specifically the antialise random number part
 
 // calcViewport: calculate the viewing plane (viewport) coordinate
 //    viewport:       output viewing plane coordinate
@@ -138,7 +124,14 @@ void calcViewport(out vec2 viewport, out vec2 ndc, out vec2 uv,
     aspect = resolution.x * resolutionInv.y;
 
     // uv = screen-space coordinate = [0, 1) = coord / resolution
-    uv = fragCoord * resolutionInv;
+    uv += fragCoord.xy * resolutionInv;
+    
+    //Randomizer for antialize
+    float rand1 = numRand(uv * 0.123);
+    float rand2 = numRand(uv * 0.456);
+    
+    //Putting random pixels into the resoluiton
+    uv += vec2(rand1, rand2) / iResolution.xy;
 
     // ndc = normalized device coordinate = [-1, +1) = uv*2 - 1
     ndc = uv * 2.0 - 1.0;
@@ -165,35 +158,34 @@ void calcRay(out vec4 rayDirection, out vec4 rayOrigin,
 }
 
 
+// Not All Origininal Work for calcColor!
+// Got some insperation from ShaderToy user fhecht
+// Source: https://www.shadertoy.com/view/tlB3D3
+
 // calcColor: calculate the color of a pixel given a ray
 //    rayDirection: input ray direction
 //    rayOrigin:    input ray origin
 vec4 calcColor(vec4 rDir, vec4 rOrg, sphereStruct sph1, sphereStruct sph2)
 {
-    float tMax = 10000000000.0; //"infinity"
+    //Setting a max and a min of were a sphere can be
+    float tMax = 1e20; //"infinity"
     float tMin = 0.0;
     
     hitRecord rec;
     
-    /*
-    if(sphereHit(rDir, rOrg, tMin, tMax, sphere, rec))
-    {
-        return (rec.normal) / 2.0;
-    }
-	*/
-    
-    ///*
+    //Checking if is hitting an avalable sphere
     if(sphereHit(rDir, rOrg, tMin, tMax, sph1, rec))
     {
+        // Returns normal color
         return (rec.normal + 1.0) / 2.0;
     }
     if(sphereHit(rDir, rOrg, tMin, tMax, sph2, rec))
     {
+        // Returns normal color
         return (rec.normal + 1.0) / 2.0;
     }
-	//*/
 
-    //Background Gradiant
+    // Making Background Gradiant
     vec4 unitDir = normalize(rDir);
     float t = (unitDir.y + 1.0) / 2.0;
     return (1.0 - t) * vec4(1.0, 1.0, 1.0, 1.0) + t * vec4(0.5, 0.7, 1.0, 1.0);
@@ -226,6 +218,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     
     // color
     fragColor = calcColor(rayDirection, rayOrigin, sph1, sph2);
+    
+    
+    //Randomizer for antialize
+    //float rand1 = numRand(uv) / float(iResolution.xy);
+    //float rand2 = numRand(uv * 0.456);
+    
+    //uv += rand1; //vec2(rand1, rand2) / iResolution.xy;
 
     // TEST COLOR:
     //  -> what do the other things calculated above look like?
