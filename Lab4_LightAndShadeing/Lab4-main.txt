@@ -65,6 +65,10 @@ bool initLight(out pointLightStr light, in vec3 center, in vec4 color, in float 
     return true;
 }
 
+// FUNCTIONS HERE
+
+//vec4 
+
 
 // calcViewport: calculate the viewing plane (viewport) coordinate
 //    viewport:       output viewing plane coordinate
@@ -126,7 +130,7 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     sphereStr sphere;
     pointLightStr light;
     initSphere(sphere, vec3(0.0, 0.0, -4.0), 0.5);
-    initLight(light, vec3(0.5, 0.5, -3.0), vec4(0.0, 0.0, 0.0, 0.0), 4.0);
+    initLight(light, vec3(0.5, 0.5, -3.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0);
     
     // testing procedual sphere (can make funciton for this math later)
     vec3 dp;
@@ -157,37 +161,41 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         
         //sphere.sCenter = normalize(light.lCenter - sphere.sCenter);
         
-        vec3 normal = (spherePosition - sphere.sCenter.xyz) / sphere.sRadius;
+        vec3 sphereNormal = (spherePosition - sphere.sCenter.xyz) / sphere.sRadius;
             //normalize(position - sphere.sCenter.xyz);
 
-        //Id = kdIl (Diffusion)
+        //Id = kd * Il (Diffusion)
     	//Id = diffusion intensity
     	//kd = diffuse coefficient -> kd = cos(0n,l)
     	//Il = attenuated intensity
         
-        vec3 bigL = normalize(lightPosition - spherePosition);
+        //vec3 bigL = normalize(lightPosition - spherePosition);
         //vec3 bigL = normalize(light.lCenter.xyz - spherePosition);
         //vec3 bigL = normalize(light.lCenter.xyz - sphere.sCenter.xyz);
         //vec3 bigL = normalize(lightPosition - sphere.sCenter.xyz);
         
-        float kD = max(0.0, ((normal.x * bigL.x) + (normal.y * bigL.y) + (normal.z * bigL.z)));
+        // diffusion coefficent
+        vec3 bigL = normalize(lightPosition - spherePosition);
+        float kD = max(0.0, ((sphereNormal.x * bigL.x) + 
+                             (sphereNormal.y * bigL.y) + 
+                             (sphereNormal.z * bigL.z)));
         
+        // Distance from sphere point to light center
         float d = sqrt(((spherePosition.x * spherePosition.x) - (light.lCenter.x * light.lCenter.x)) +
             ((spherePosition.y * spherePosition.y) - (light.lCenter.y * light.lCenter.y)) +
             ((spherePosition.z * spherePosition.z) - (light.lCenter.z * light.lCenter.z)));
         
-        //float d = sqrt(mathdistance);
-        
+        // Attenuation Formula
         float IL = 1.0 / (1.0 + d / light.lIntensity + (d * d) / (light.lIntensity * light.lIntensity));
         
+        // Diffuse Intensity Formula
         float ID = kD * IL;
         
-        return vec4(ID, ID, ID, 1.0);//vec4(normal * 0.5 + 0.5, 1.0);
+        // Coloring Sphere and light
+        vec4 color = ID * vec4(sphereNormal * 0.5 + 0.5, 1.0) * light.lColor;
+        
+        return color;//vec4(ID, ID, ID, 1.0); //vec4(normal * 0.5 + 0.5, 1.0);
     }
-    //Id = kdIl (Diffusion)
-    //Id = diffusion intensity
-    //kd = diffuse coefficient -> kd = cos(0n,l)
-    //Il = attenuated intensity
     
 	// BACKGROUND
 	const vec3 warm = vec3(0.8, 0.4, 0.2), cool = vec3(0.2, 0.4, 0.8);
