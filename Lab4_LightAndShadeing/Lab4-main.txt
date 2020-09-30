@@ -172,10 +172,8 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     	// kd = diffuse coefficient -> kd = cos(0n,l)
     	// Il = attenuated intensity
         
-        //vec3 bigL = normalize(lightPosition - spherePosition);
-        //vec3 bigL = normalize(light.lCenter.xyz - spherePosition);
-        //vec3 bigL = normalize(light.lCenter.xyz - sphere.sCenter.xyz);
-        //vec3 bigL = normalize(lightPosition - sphere.sCenter.xyz);
+        vec3 lightPosition = light.lCenter.xyz + 
+            vec3(dp.x, dp.y, sqrt(dp.z));
         
         // Diffusion Coefficent
         // Kd = max(0, N(normal) * L);
@@ -206,11 +204,26 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         // bigV = normal of view vector (ray Origin) and sphere position
         // R = reflected light
         
+        // V = normalize(rayOrigin.xyz - spherePosition;
         vec3 bigV = normalize(rayOrigin.xyz - spherePosition);
+        
+        // Blinn-Phong reflectance
+        // H = normalize(bigL + bigV);
+        vec3 bigH = normalize(bigL + bigV);
+        
         vec3 R = reflect(-bigL, sphereNormal);
+       
+        
+        float kS = max(0.0, ((sphereNormal.x * bigH.x) + 
+                             (sphereNormal.y * bigH.y) + 
+                             (sphereNormal.z * bigH.z)));
+        
+        /*
         float kS = max(0.0, ((bigV.x * R.x) + 
                              (bigV.y * R.y) + 
                              (bigV.z * R.z)));
+		*/
+        
         float a = 64.0;
         float IS = pow(kS, a); // Find a way to fix this 
         
@@ -219,8 +232,10 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         // vec4 color = ID * sphereColor * light.lColor;
         
         // Phong (C = IA * CA + (ID * CD + IS * CS) * CL)
-        vec4 color =  5.0 * vec4(0.0, 0.0, 0.0, 0.0) + ((ID * sphereColor) + 
-                                                        (IS * vec4(1.0, 1.0, 1.0, 1.0))) * light.lColor;
+        //vec4 color =  5.0 * vec4(0.0, 0.0, 0.0, 0.0) + ((ID * sphereColor) + 
+                                                        //(IS * vec4(1.0, 1.0, 1.0, 1.0))) * light.lColor;
+        
+        // Multiple lights C = IA * CA + sum (n - 1 i = 0) (ID * CD + IS * CS) * CL
         
         //return vec4(IS, IS, IS, 1.0);
         //return vec4(ID, ID, ID, 1.0);
@@ -257,6 +272,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     	             fragCoord, iResolution.xy);
     
     calcRay(rayDirection, rayOrigin, vec3(0.0), viewport);
+    
+    // LIGHTS
+    
     
     fragColor += calcColor(rayDirection, rayOrigin);
 }
