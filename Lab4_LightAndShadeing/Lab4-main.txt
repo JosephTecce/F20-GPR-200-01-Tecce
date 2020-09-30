@@ -55,10 +55,10 @@ bool initSphere(out sphereStr sphere,
     return false;
 }
 
-bool initLight(out pointLightStr light, in vec4 center, in vec4 color, in float intensity)
+bool initLight(out pointLightStr light, in vec3 center, in vec4 color, in float intensity)
 {
-    //light.lCenter = asPoint(center);
-    light.lCenter = center;
+    light.lCenter = asPoint(center);
+    //light.lCenter = center;
     light.lColor = color;
     light.lIntensity = intensity;
     
@@ -126,7 +126,7 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     sphereStr sphere;
     pointLightStr light;
     initSphere(sphere, vec3(0.0, 0.0, -4.0), 0.5);
-    initLight(light, vec4(0.5, 0.5, -4.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 0.5);
+    initLight(light, vec3(0.5, 0.5, -3.0), vec4(0.0, 0.0, 0.0, 0.0), 0.5);
     
     // testing procedual sphere (can make funciton for this math later)
     vec3 dp;
@@ -152,14 +152,13 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         vec3 spherePosition = sphere.sCenter.xyz + 
             vec3(dp.x, dp.y, sqrt(dp.z));
         
-        //vec3 lightPosition = light.lCenter.xyz + vec3(dp.x, dp.y, dp.z);
+        vec3 lightPosition = light.lCenter.xyz + vec3(dp.x, dp.y, sqrt(dp.z));
         //vec3 lightNormal = (lightPosition - light.lCenter.xyz) / sphere.sRadius;
         
         //vec3 bigL = normalize(light.lCenter.xyz - position);
         //light.lCenter.xyz = normalize(light.lCenter.xyz - position);
         //position = normalize(light.lCenter.xyz - position);
         //position = normalize(light.lCenter.xyz - sphere.sCenter.xyz);
-        vec3 bigL = normalize(light.lCenter.xyz - sphere.sCenter.xyz);//vec3 bigL = normalize(lightPosition - spherePosition); //(light.lCenter.xyz - spherePosition) / sphere.sRadius;
         
         //sphere.sCenter = normalize(light.lCenter - sphere.sCenter);
         
@@ -170,17 +169,26 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         
         //position = normalize(light.lCenter.xyz - position);
         
+        
+        //Id = kdIl (Diffusion)
+    	//Id = diffusion intensity
+    	//kd = diffuse coefficient -> kd = cos(0n,l)
+    	//Il = attenuated intensity
+        
+        vec3 bigL = normalize(lightPosition - spherePosition);
+        //vec3 bigL = normalize(light.lCenter.xyz - spherePosition);
+        //vec3 bigL = normalize(light.lCenter.xyz - sphere.sCenter.xyz);
+        //vec3 bigL = normalize(lightPosition - sphere.sCenter.xyz);
+        
         //vec3 ktoTheD = max(0.0, normal.y * position.y);
-        float kD = max(0.0, (normal.x + normal.y + normal.z) * (bigL.x + bigL.y + bigL.z));
+        //float kD = max(0.0, (normal.x + normal.y + normal.z) * (bigL.x + bigL.y + bigL.z));
+        float kD = max(0.0, ((normal.x * bigL.x) + (normal.y * bigL.y) + (normal.z * bigL.z)));
         //vec3 kD = max(0.0, normal.y * light.lCenter.y);
         //vec3 kD = normal * light.lCenter.xyz;
         //vec3 kD = max(normal.xyz * light.lCenter.xyz, 0.0);
         
         return vec4(kD, kD, kD, 1.0);//vec4(normal * 0.5 + 0.5, 1.0);
     }
-    
-    
-    //light.lCenter = normalize(light.lCenter - sphere.sCenter); 
     //Id = kdIl (Diffusion)
     //Id = diffusion intensity
     //kd = diffuse coefficient -> kd = cos(0n,l)
