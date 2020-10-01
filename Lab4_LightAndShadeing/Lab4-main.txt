@@ -68,15 +68,8 @@ bool initLight(out pointLightStr light, in vec4 center, in vec4 color, in float 
     return true;
 }
 
-// LIGHT LIST
-
-pointLightStr lightList[] = pointLightStr[4](
-    pointLightStr(vec4(0.5, 0.5, -3.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0),
-    pointLightStr(vec4(-2.5, -2.5, -3.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0),
-	pointLightStr(vec4(-8.0, 6.0, -5.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0),
-	pointLightStr(vec4(3.2, -9.0, -5.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0));
-
 // FUNCTIONS
+
 
 
 // calcViewport: calculate the viewing plane (viewport) coordinate
@@ -137,6 +130,7 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
 	
     // SCENE
     sphereStr sphere;
+    pointLightStr lightList[4];
     initSphere(sphere, vec3(0.0, 0.0, -4.0), 0.5);
     initLight(lightList[0], vec4(0.5, 0.5, -3.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0);
     initLight(lightList[1], vec4(-2.5, -2.5, -3.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0);
@@ -167,15 +161,12 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         vec3 spherePosition = sphere.sCenter.xyz + 
             vec3(dp.x, dp.y, sqrt(dp.z));
         
-        //sphere.sCenter = normalize(light.lCenter - sphere.sCenter);
-        
+        //normalize(spherePosition - sphere.sCenter.xyz);
         vec3 sphereNormal = (spherePosition - sphere.sCenter.xyz) / sphere.sRadius;
-            //normalize(position - sphere.sCenter.xyz);
 
         vec4 sphereColor = vec4(sphereNormal * 0.5 + 0.5, 1.0);        
-        
-        //Getting Light Positions
-        
+                
+        //Getting Lights Positions
         vec3 lightPosition = lightList[0].lCenter.xyz + 
             vec3(dp.x, dp.y, sqrt(dp.z));
         vec3 light2Position = lightList[1].lCenter.xyz + 
@@ -198,11 +189,21 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         vec3 bigL3 = normalize(light3Position - spherePosition);
         vec3 bigL4 = normalize(light4Position - spherePosition);
         
+    	float kD = max(0.0, ((sphereNormal.x * bigL.x) + 
+                             (sphereNormal.y * bigL.y) + 
+                             (sphereNormal.z * bigL.z)));
         
-    	float kD = max(0.0, ((sphereNormal.x * bigL.x) + (sphereNormal.y * bigL.y) + (sphereNormal.z * bigL.z)));
-        float kD2 = max(0.0, ((sphereNormal.x * bigL2.x) + (sphereNormal.y * bigL2.y) + (sphereNormal.z * bigL2.z)));
-        float kD3 = max(0.0, ((sphereNormal.x * bigL3.x) + (sphereNormal.y * bigL3.y) + (sphereNormal.z * bigL3.z)));
-        float kD4 = max(0.0, ((sphereNormal.x * bigL4.x) + (sphereNormal.y * bigL4.y) + (sphereNormal.z * bigL4.z)));
+        float kD2 = max(0.0, ((sphereNormal.x * bigL2.x) + 
+                              (sphereNormal.y * bigL2.y) + 
+                              (sphereNormal.z * bigL2.z)));
+        
+        float kD3 = max(0.0, ((sphereNormal.x * bigL3.x) + 
+                              (sphereNormal.y * bigL3.y) + 
+                              (sphereNormal.z * bigL3.z)));
+        
+        float kD4 = max(0.0, ((sphereNormal.x * bigL4.x) + 
+                              (sphereNormal.y * bigL4.y) + 
+                              (sphereNormal.z * bigL4.z)));
         
     	// Distance from sphere point to light center
     	//float d = sqrt(((spherePosition.x * spherePosition.x) - (lightList[0].lCenter.x * lightList[0].lCenter.x)) +
@@ -244,7 +245,7 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     	// bigV = normal of view vector (ray Origin) and sphere position
     	// R = reflected light
     	    
-    	// V = normalize(rayOrigin.xyz - spherePosition;
+    	// V = normalize(rayOrigin.xyz - spherePosition);
     	vec3 bigV = normalize(rayOrigin.xyz - spherePosition);
     	    
     	// Blinn-Phong reflectance
@@ -254,10 +255,11 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         vec3 bigH3 = normalize(bigL3 + bigV);
         vec3 bigH4 = normalize(bigL4 + bigV);
     	    
-    	vec3 R = reflect(-bigL, sphereNormal);
-        vec3 R2 = reflect(-bigL2, sphereNormal);
-        vec3 R3 = reflect(-bigL3, sphereNormal);
-        vec3 R4 = reflect(-bigL4, sphereNormal);
+        //reflect(-bigL, sphereNormal);
+    	vec3 R = -bigL - 2.0 * dot(sphereNormal, -bigL);
+        vec3 R2 =  -bigL2 - 2.0 * dot(sphereNormal, -bigL2); //reflect(-bigL2, sphereNormal);
+        vec3 R3 =  -bigL3 - 2.0 * dot(sphereNormal, -bigL3); //reflect(-bigL3, sphereNormal);
+        vec3 R4 =  -bigL4 - 2.0 * dot(sphereNormal, -bigL4); //reflect(-bigL4, sphereNormal);
     	       
     	float kS = max(0.0, ((sphereNormal.x * bigH.x) + 
                              (sphereNormal.y * bigH.y) + 
@@ -298,13 +300,7 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
     	                         (ISTotal * sphereColor)) * lightList[i].lColor;
             
             return color;
-        }
-
-        
-    	//vec4 color =  IA * CA + ((IDTotal * sphereColor) + 
-    	                         //(ISTotal * vec4(1.0, 1.0, 1.0, 1.0))) * light.lColor;
-    	
-    	//return color;        
+        }       
     }
 
 	// BACKGROUND
