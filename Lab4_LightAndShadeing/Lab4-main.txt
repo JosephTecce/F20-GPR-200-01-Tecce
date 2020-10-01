@@ -1,5 +1,8 @@
 // GLSL STARTER CODE BY DANIEL S. BUCKSTEIN
 
+#define IA 5.0
+#define CA vec4(0.0, 0.0, 0.0, 0.0)
+
 struct pointLightStr
 {
     vec4 lCenter;
@@ -55,19 +58,25 @@ bool initSphere(out sphereStr sphere,
     return false;
 }
 
-bool initLight(out pointLightStr light, in vec3 center, in vec4 color, in float intensity)
+bool initLight(out pointLightStr light, in vec4 center, in vec4 color, in float intensity)
 {
-    light.lCenter = asPoint(center);
-    //light.lCenter = center;
+    //light.lCenter = asPoint(center);
+    light.lCenter = center;
     light.lColor = color;
     light.lIntensity = intensity;
     
     return true;
 }
 
-// FUNCTIONS HERE
+// LIGHT LIST
 
-//vec4 
+pointLightStr lightList[] = pointLightStr[4](
+    pointLightStr(vec4(0.5, 0.5, -3.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0),
+    pointLightStr(vec4(-2.5, -2.5, -3.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0),
+	pointLightStr(vec4(-8.0, 6.0, -5.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0),
+	pointLightStr(vec4(3.2, -9.0, -5.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0));
+
+// FUNCTIONS
 
 
 // calcViewport: calculate the viewing plane (viewport) coordinate
@@ -128,9 +137,11 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
 	
     // SCENE
     sphereStr sphere;
-    pointLightStr light;
     initSphere(sphere, vec3(0.0, 0.0, -4.0), 0.5);
-    initLight(light, vec3(0.5, 0.5, -3.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0);
+    initLight(lightList[0], vec4(0.5, 0.5, -3.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0);
+    initLight(lightList[1], vec4(-2.5, -2.5, -3.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0);
+    initLight(lightList[2], vec4(-8.0, 6.0, -5.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0);
+    initLight(lightList[3], vec4(3.2, -9.0, -5.0, 1.0), vec4(1.0, 1.0, 1.0, 1.0), 4.0);
     
     // testing procedual sphere (can make funciton for this math later)
     vec3 dp;
@@ -156,98 +167,150 @@ vec4 calcColor(in vec4 rayDirection, in vec4 rayOrigin)
         vec3 spherePosition = sphere.sCenter.xyz + 
             vec3(dp.x, dp.y, sqrt(dp.z));
         
-        vec3 lightPosition = light.lCenter.xyz + 
-            vec3(dp.x, dp.y, sqrt(dp.z));
-        
         //sphere.sCenter = normalize(light.lCenter - sphere.sCenter);
         
         vec3 sphereNormal = (spherePosition - sphere.sCenter.xyz) / sphere.sRadius;
             //normalize(position - sphere.sCenter.xyz);
 
-        vec4 sphereColor = vec4(sphereNormal * 0.5 + 0.5, 1.0);
+        vec4 sphereColor = vec4(sphereNormal * 0.5 + 0.5, 1.0);        
         
-        // Diffusion
-        // Id = kd * Il (Diffusion)
+        //Getting Light Positions
+        
+        vec3 lightPosition = lightList[0].lCenter.xyz + 
+            vec3(dp.x, dp.y, sqrt(dp.z));
+        vec3 light2Position = lightList[1].lCenter.xyz + 
+            vec3(dp.x, dp.y, sqrt(dp.z));
+        vec3 light3Position = lightList[2].lCenter.xyz + 
+            vec3(dp.x, dp.y, sqrt(dp.z));
+        vec3 light4Position = lightList[3].lCenter.xyz + 
+            vec3(dp.x, dp.y, sqrt(dp.z));
+      
+    	// Diffusion
+    	// Id = kd * Il (Diffusion)
     	// Id = diffusion intensity
     	// kd = diffuse coefficient -> kd = cos(0n,l)
     	// Il = attenuated intensity
+    
+    	// Diffusion Coefficent
+    	// Kd = max(0, N(normal) * L);
+    	vec3 bigL = normalize(lightPosition - spherePosition);
+        vec3 bigL2 = normalize(light2Position - spherePosition);
+        vec3 bigL3 = normalize(light3Position - spherePosition);
+        vec3 bigL4 = normalize(light4Position - spherePosition);
         
-        vec3 lightPosition = light.lCenter.xyz + 
-            vec3(dp.x, dp.y, sqrt(dp.z));
         
-        // Diffusion Coefficent
-        // Kd = max(0, N(normal) * L);
-        vec3 bigL = normalize(lightPosition - spherePosition);
-        float kD = max(0.0, ((sphereNormal.x * bigL.x) + 
-                             (sphereNormal.y * bigL.y) + 
-                             (sphereNormal.z * bigL.z)));
+    	float kD = max(0.0, ((sphereNormal.x * bigL.x) + (sphereNormal.y * bigL.y) + (sphereNormal.z * bigL.z)));
+        float kD2 = max(0.0, ((sphereNormal.x * bigL2.x) + (sphereNormal.y * bigL2.y) + (sphereNormal.z * bigL2.z)));
+        float kD3 = max(0.0, ((sphereNormal.x * bigL3.x) + (sphereNormal.y * bigL3.y) + (sphereNormal.z * bigL3.z)));
+        float kD4 = max(0.0, ((sphereNormal.x * bigL4.x) + (sphereNormal.y * bigL4.y) + (sphereNormal.z * bigL4.z)));
         
-        // Distance from sphere point to light center
-        float d = sqrt(((spherePosition.x * spherePosition.x) - (light.lCenter.x * light.lCenter.x)) +
-            ((spherePosition.y * spherePosition.y) - (light.lCenter.y * light.lCenter.y)) +
-            ((spherePosition.z * spherePosition.z) - (light.lCenter.z * light.lCenter.z)));
+    	// Distance from sphere point to light center
+    	//float d = sqrt(((spherePosition.x * spherePosition.x) - (lightList[0].lCenter.x * lightList[0].lCenter.x)) +
+        	    //((spherePosition.y * spherePosition.y) - (lightList[0].lCenter.y * lightList[0].lCenter.y)) +
+        	    //((spherePosition.z * spherePosition.z) - (lightList[0].lCenter.z * lightList[0].lCenter.z)));
         
-        // Attenuation Formula
-        // I'L = 1 / (1 + d/light.lIntensity + pow(d) / pow(light.lIntensity));
-        float IL = 1.0 / (1.0 + d / light.lIntensity + (d * d) / (light.lIntensity * light.lIntensity));
+        float d = distance(spherePosition.xyz, lightList[0].lCenter.xyz);
+        float d2 = distance(spherePosition.xyz, lightList[1].lCenter.xyz);
+        float d3 = distance(spherePosition.xyz, lightList[2].lCenter.xyz);
+        float d4 = distance(spherePosition.xyz, lightList[3].lCenter.xyz);
         
-        // Diffuse Intensity Formula
-        float ID = kD * IL;
+    	// Attenuation Formula
+    	// I'L = 1 / (1 + d/light.lIntensity + pow(d) / pow(light.lIntensity));
+    	float IL = 1.0 / (1.0 + d / lightList[0].lIntensity + 
+                          (d * d) / (lightList[0].lIntensity * lightList[0].lIntensity));
         
-        // Phong Reflectance
-        // IS = kaS
-        // IS = specular Intensity
-        // kS = specual coeffiecient
-        // a = highlight exponient
+        float IL2 = 1.0 / (1.0 + d2 / lightList[1].lIntensity + 
+                           (d2 * d2) / (lightList[1].lIntensity * lightList[1].lIntensity));
         
-        // Specular Coefficient
-        // bigV = normal of view vector (ray Origin) and sphere position
-        // R = reflected light
+        float IL3 = 1.0 / (1.0 + d3 / lightList[2].lIntensity + 
+                           (d3 * d3) / (lightList[2].lIntensity * lightList[3].lIntensity));
         
-        // V = normalize(rayOrigin.xyz - spherePosition;
-        vec3 bigV = normalize(rayOrigin.xyz - spherePosition);
+        float IL4 = 1.0 / (1.0 + d4 / lightList[3].lIntensity + 
+                           (d4 * d4) / (lightList[3].lIntensity * lightList[3].lIntensity));
+    
+    	float ID = kD * IL;
+        float ID2 = kD2 * IL2;
+        float ID3 = kD3 * IL3;
+        float ID4 = kD4 * IL4;
+        float IDTotal = ID + ID2 + ID3 + ID4;
         
-        // Blinn-Phong reflectance
-        // H = normalize(bigL + bigV);
-        vec3 bigH = normalize(bigL + bigV);
+    	// Phong Reflectance
+    	// IS = kaS
+    	// IS = specular Intensity
+    	// kS = specual coeffiecient
+    	// a = highlight exponient
         
-        vec3 R = reflect(-bigL, sphereNormal);
-       
-        
-        float kS = max(0.0, ((sphereNormal.x * bigH.x) + 
+    	// Specular Coefficient
+    	// bigV = normal of view vector (ray Origin) and sphere position
+    	// R = reflected light
+    	    
+    	// V = normalize(rayOrigin.xyz - spherePosition;
+    	vec3 bigV = normalize(rayOrigin.xyz - spherePosition);
+    	    
+    	// Blinn-Phong reflectance
+    	// H = normalize(bigL + bigV);
+    	vec3 bigH = normalize(bigL + bigV);
+        vec3 bigH2 = normalize(bigL2 + bigV);
+        vec3 bigH3 = normalize(bigL3 + bigV);
+        vec3 bigH4 = normalize(bigL4 + bigV);
+    	    
+    	vec3 R = reflect(-bigL, sphereNormal);
+        vec3 R2 = reflect(-bigL2, sphereNormal);
+        vec3 R3 = reflect(-bigL3, sphereNormal);
+        vec3 R4 = reflect(-bigL4, sphereNormal);
+    	       
+    	float kS = max(0.0, ((sphereNormal.x * bigH.x) + 
                              (sphereNormal.y * bigH.y) + 
                              (sphereNormal.z * bigH.z)));
         
-        /*
-        float kS = max(0.0, ((bigV.x * R.x) + 
-                             (bigV.y * R.y) + 
-                             (bigV.z * R.z)));
-		*/
+        float kS2 = max(0.0, ((sphereNormal.x * bigH2.x) + 
+                              (sphereNormal.y * bigH2.y) + 
+                              (sphereNormal.z * bigH2.z)));
         
-        float a = 64.0;
-        float IS = pow(kS, a); // Find a way to fix this 
+        float kS3 = max(0.0, ((sphereNormal.x * bigH3.x) + 
+                              (sphereNormal.y * bigH3.y) + 
+                              (sphereNormal.z * bigH3.z)));
         
-        // Final Coloring Sphere and light
-        // Just diffusion (C = ID * CD * CL)
-        // vec4 color = ID * sphereColor * light.lColor;
+        float kS4 = max(0.0, ((sphereNormal.x * bigH4.x) + 
+                              (sphereNormal.y * bigH4.y) + 
+                              (sphereNormal.z * bigH4.z)));
+    	
+        // Gets a for powering to the kS
+    	float a = 64.0;
+        a *= 4.0;
         
-        // Phong (C = IA * CA + (ID * CD + IS * CS) * CL)
-        //vec4 color =  5.0 * vec4(0.0, 0.0, 0.0, 0.0) + ((ID * sphereColor) + 
-                                                        //(IS * vec4(1.0, 1.0, 1.0, 1.0))) * light.lColor;
+    	float IS = pow(kS, a); // Find a way to fix this
+        float IS2 = pow(kS2, a); 
+        float IS3 = pow(kS3, a); 
+        float IS4 = pow(kS4, a); 
         
-        // Multiple lights C = IA * CA + sum (n - 1 i = 0) (ID * CD + IS * CS) * CL
+        float ISTotal = IS + IS2 + IS3 + IS4; 
         
-        //return vec4(IS, IS, IS, 1.0);
-        //return vec4(ID, ID, ID, 1.0);
+    	// Final Coloring Sphere and light
+    	// Just diffusion (C = ID * CD * CL)
+    	// vec4 color = ID * sphereColor * light.lColor;
+    	// Phong (C = IA * CA + (ID * CD + IS * CS) * CL)
         
-        // returning sphere
-        return color;
+        //for(int i = 0; i < 3; i++)
+        for(int i = 3; i >= 0; --i)
+        {
+            vec4 color =  IA * CA + ((IDTotal * sphereColor) + 
+    	                         (ISTotal * sphereColor)) * lightList[i].lColor;
+            
+            return color;
+        }
+
+        
+    	//vec4 color =  IA * CA + ((IDTotal * sphereColor) + 
+    	                         //(ISTotal * vec4(1.0, 1.0, 1.0, 1.0))) * light.lColor;
+    	
+    	//return color;        
     }
-    
+
 	// BACKGROUND
 	const vec3 warm = vec3(0.8, 0.4, 0.2), cool = vec3(0.2, 0.4, 0.8);
-	//return vec4(mix(warm, cool, rayDirection.y), 1.0); // Actual background for project
-    return vec4(0.5); // Light testing background
+	return vec4(mix(warm, cool, rayDirection.y), 1.0); // Actual background for project
+    //return vec4(0.5); // Light testing background
 }
 
 // mainImage: process the current pixel (exactly one call per pixel)
@@ -273,8 +336,5 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     
     calcRay(rayDirection, rayOrigin, vec3(0.0), viewport);
     
-    // LIGHTS
-    
-    
-    fragColor += calcColor(rayDirection, rayOrigin);
+    fragColor = calcColor(rayDirection, rayOrigin);
 }
